@@ -1,0 +1,9 @@
+name: rdt
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10.0
+  - pip
+  - cuda
+prefix: /home/dt/miniconda3/envs/rdt

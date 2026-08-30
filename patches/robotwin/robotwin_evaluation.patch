@@ -1,0 +1,199 @@
+diff --git a/envs/_base_task.py b/envs/_base_task.py
+index 301da9f..c2e4208 100644
+--- a/envs/_base_task.py
++++ b/envs/_base_task.py
+@@ -579,6 +579,13 @@ class Base_Task(gym.Env):
+         self.left_joint_path = args.get("left_joint_path", [])
+         self.right_joint_path = args.get("right_joint_path", [])
+ 
++    def _get_eval_video_frame(self):
++        if self.data_type.get("third_view", False):
++            return np.ascontiguousarray(self.now_obs["third_view_rgb"])
++        return np.ascontiguousarray(
++            self.now_obs["observation"]["head_camera"]["rgb"]
++        )
++
+     def _set_eval_video_ffmpeg(self, ffmpeg):
+         self.eval_video_ffmpeg = ffmpeg
+ 
+@@ -1489,7 +1496,7 @@ class Base_Task(gym.Env):
+ 
+         eval_video_freq = 1  # fixed
+         if (self.eval_video_path is not None and self.take_action_cnt % eval_video_freq == 0):
+-            self.eval_video_ffmpeg.stdin.write(self.now_obs["observation"]["head_camera"]["rgb"].tobytes())
++            self.eval_video_ffmpeg.stdin.write(self._get_eval_video_frame().tobytes())
+ 
+         self.take_action_cnt += 1
+         print(f"step: \033[92m{self.take_action_cnt} / {self.step_lim}\033[0m", end="\r")
+@@ -1665,7 +1672,7 @@ class Base_Task(gym.Env):
+                 self.eval_success = True
+                 self.get_obs() # update obs
+                 if (self.eval_video_path is not None):
+-                    self.eval_video_ffmpeg.stdin.write(self.now_obs["observation"]["head_camera"]["rgb"].tobytes())
++                    self.eval_video_ffmpeg.stdin.write(self._get_eval_video_frame().tobytes())
+                 return
+ 
+         self._update_render()
+diff --git a/scripts/eval_policy_xpolicylab.py b/scripts/eval_policy_xpolicylab.py
+index 745cc30..dc0b599 100644
+--- a/scripts/eval_policy_xpolicylab.py
++++ b/scripts/eval_policy_xpolicylab.py
+@@ -290,8 +290,11 @@ def main(usr_args: dict[str, Any]) -> None:
+     video_size = None
+ 
+     if args["eval_video_log"]:
+-        camera_config = get_camera_config(args["camera"]["head_camera_type"])
+-        video_size = str(camera_config["w"]) + "x" + str(camera_config["h"])
++        if args.get("data_type", {}).get("third_view", False):
++            video_size = "320x240"
++        else:
++            camera_config = get_camera_config(args["camera"]["head_camera_type"])
++            video_size = str(camera_config["w"]) + "x" + str(camera_config["h"])
+         args["eval_video_save_dir"] = save_dir
+ 
+     if os.environ.get("ROBOTWIN_SUPPRESS_EVAL_CONFIG") != "1":
+@@ -354,8 +357,11 @@ def main_batch(usr_args: dict[str, Any]) -> None:
+     video_size = None
+ 
+     if args["eval_video_log"]:
+-        camera_config = get_camera_config(args["camera"]["head_camera_type"])
+-        video_size = str(camera_config["w"]) + "x" + str(camera_config["h"])
++        if args.get("data_type", {}).get("third_view", False):
++            video_size = "320x240"
++        else:
++            camera_config = get_camera_config(args["camera"]["head_camera_type"])
++            video_size = str(camera_config["w"]) + "x" + str(camera_config["h"])
+         args["eval_video_save_dir"] = save_dir
+ 
+     if os.environ.get("ROBOTWIN_SUPPRESS_EVAL_CONFIG") != "1":
+@@ -876,6 +882,25 @@ def eval_remote_policy(
+         succ = False
+         rollout_steps = 0
+         rollout_failed = False
++
++        audit_dir_value = os.environ.get(
++            "ROBOTWIN_SAME_SEED_AUDIT_DIR"
++        )
++
++        audit_dir = (
++            Path(audit_dir_value)
++            if audit_dir_value
++            else None
++        )
++
++        if audit_dir is not None:
++            audit_dir.mkdir(
++                parents=True,
++                exist_ok=True
++            )
++
++        audit_saved = False
++
+         prepare_policy_case(model_client, task_name, now_seed, instruction, action_type)
+         reset_policy(model_client)
+         try:
+@@ -890,6 +915,84 @@ def eval_remote_policy(
+                 )
+                 model_client.call(func_name="update_obs", obs=xpl_obs)
+                 action_chunk = normalize_action_chunk(model_client.call(func_name="get_action"))
++
++                if audit_dir is not None and not audit_saved:
++
++                    flat_chunk = np.stack([
++                        xpolicylab_action_to_robotwin(
++                            a,
++                            action_type=action_type,
++                            current_observation=observation,
++                        )[0]
++                        for a in action_chunk
++                    ])
++
++                    np.save(
++                        audit_dir / "model_first_chunk.npy",
++                        flat_chunk,
++                    )
++
++                    qpos = np.asarray(
++                        observation["joint_action"]["vector"],
++                        dtype=np.float32,
++                    )
++
++                    np.save(
++                        audit_dir / "model_initial_qpos.npy",
++                        qpos,
++                    )
++
++                    raw_vis = observation.get(
++                        "observation",
++                        {}
++                    )
++
++                    for camera_name in (
++                        "head_camera",
++                        "left_camera",
++                        "right_camera",
++                    ):
++                        camera = raw_vis.get(camera_name)
++
++                        if (
++                            camera is not None
++                            and "rgb" in camera
++                        ):
++                            np.save(
++                                audit_dir
++                                / f"model_{camera_name}.npy",
++                                np.asarray(
++                                    camera["rgb"],
++                                    dtype=np.uint8,
++                                ),
++                            )
++
++                    (
++                        audit_dir / "model_instruction.txt"
++                    ).write_text(
++                        instruction,
++                        encoding="utf-8",
++                    )
++
++                    (
++                        audit_dir / "model_seed.txt"
++                    ).write_text(
++                        str(now_seed),
++                        encoding="utf-8",
++                    )
++
++                    print(
++                        "\n[SAME-SEED AUDIT] saved:",
++                        audit_dir
++                    )
++
++                    print(
++                        "[SAME-SEED AUDIT] first chunk:",
++                        flat_chunk.shape
++                    )
++
++                    audit_saved = True
++
+                 if len(action_chunk) == 0:
+                     raise RuntimeError("Policy returned an empty action chunk.")
+ 
+@@ -975,6 +1078,19 @@ def eval_remote_policy(
+ 
+ 
+ def build_instruction(args: dict[str, Any], episode_info: dict[str, Any], instruction_type: str | None, test_num: int) -> str:
++    fixed_instruction_file = os.environ.get("ROBOTWIN_FIXED_INSTRUCTION_FILE")
++    if fixed_instruction_file:
++        fixed_instruction = Path(
++            fixed_instruction_file
++        ).read_text(encoding="utf-8").strip()
++
++        print(
++            "[SAME-SEED AUDIT] fixed instruction:",
++            fixed_instruction
++        )
++
++        return fixed_instruction
++
+     if not instruction_type:
+         return args["task_name"]
+ 

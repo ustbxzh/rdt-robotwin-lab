@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rdt-robotwin-lab"
+version = "0.1.0"
+description = "Curated RDT-1B and RoboTwin end-to-end research pipeline"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.23",
+    "pyyaml>=6",
+    "opencv-python-headless>=4.8",
+    "h5py>=3.8",
+    "websockets>=14.0",
+    "msgpack>=1.0.8",
+    "msgpack-numpy>=0.4.8",
+    "pydantic>=2.5",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["rdt*", "robotwin*", "policy*"]
+exclude = ["tests*", "assets*", "experiments*", "patches*"]

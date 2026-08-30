@@ -1,0 +1,431 @@
+diff --git a/policy/RDT_1B/rdt/configs/dataset_control_freq.json b/policy/RDT_1B/rdt/configs/dataset_control_freq.json
+index ed97a4f..33d874d 100644
+--- a/policy/RDT_1B/rdt/configs/dataset_control_freq.json
++++ b/policy/RDT_1B/rdt/configs/dataset_control_freq.json
+@@ -11,7 +11,7 @@
+     "language_table": 10,
+     "columbia_cairlab_pusht_real": 10,
+     "stanford_kuka_multimodal_dataset_converted_externally_to_rlds": 20,
+-    "nyu_rot_dataset_converted_externally_to_rlds":3,
++    "nyu_rot_dataset_converted_externally_to_rlds": 3,
+     "stanford_hydra_dataset_converted_externally_to_rlds": 10,
+     "austin_buds_dataset_converted_externally_to_rlds": 20,
+     "nyu_franka_play_dataset_converted_externally_to_rlds": 3,
+@@ -59,7 +59,7 @@
+     "dobbe": 30,
+     "qut_dexterous_manpulation": 30,
+     "agilex": 25,
+-    "robodojo_aloha_hdf5": 25,
++    "robodojo_aloha_hdf5": 15,
+     "rh20t": 10,
+     "calvin": 30,
+     "bridgev2": 5
+diff --git a/policy/RDT_1B/rdt/configs/dataset_stat.json b/policy/RDT_1B/rdt/configs/dataset_stat.json
+index 4170c80..e76cb31 100644
+--- a/policy/RDT_1B/rdt/configs/dataset_stat.json
++++ b/policy/RDT_1B/rdt/configs/dataset_stat.json
+@@ -26886,17 +26886,17 @@
+     "robodojo_aloha_hdf5": {
+         "dataset_name": "robodojo_aloha_hdf5",
+         "state_mean": [
+-            0.18181195855140686,
+-            0.8641959428787231,
+-            0.6512665152549744,
+-            -0.3787911832332611,
+-            -0.06575490534305573,
+-            0.004399306606501341,
++            0.22941270470619202,
++            0.6128128170967102,
++            0.4533209800720215,
++            -0.1965913325548172,
++            0.0645202100276947,
++            -0.16340042650699615,
+             0.0,
+             0.0,
+             0.0,
+             0.0,
+-            0.775283694267273,
++            0.797142505645752,
+             0.0,
+             0.0,
+             0.0,
+@@ -26936,17 +26936,17 @@
+             0.0,
+             0.0,
+             0.0,
+-            -0.21051743626594543,
+-            0.9719076156616211,
+-            0.7221402525901794,
+-            -0.35660460591316223,
+-            0.06893973797559738,
+-            0.0036404035054147243,
++            -0.4041023850440979,
++            1.1278845071792603,
++            0.8416188359260559,
++            -0.406505823135376,
++            -0.02580324187874794,
++            0.3389882445335388,
+             0.0,
+             0.0,
+             0.0,
+             0.0,
+-            0.7602209448814392,
++            0.6300160884857178,
+             0.0,
+             0.0,
+             0.0,
+@@ -27016,17 +27016,17 @@
+             0.0
+         ],
+         "state_std": [
+-            0.37347059501605884,
+-            1.0043718074570858,
+-            0.8234803172217757,
+-            0.7022585156316195,
+-            0.33377511864986253,
+-            0.6311779349371617,
++            0.5685214174838397,
++            1.5518313785866273,
++            1.2675841049649577,
++            0.8756865432673504,
++            0.24687505098406967,
++            0.5033334680869405,
+             0.0,
+             0.0,
+             0.0,
+             0.0,
+-            0.35244984265290336,
++            0.43752595168955016,
+             0.0,
+             0.0,
+             0.0,
+@@ -27066,17 +27066,17 @@
+             0.0,
+             0.0,
+             0.0,
+-            0.3691091378468233,
+-            0.9372709656236341,
+-            0.7745874309298731,
+-            0.699078078415689,
+-            0.32494349519666865,
+-            0.6339768412577785,
++            0.44705157248961863,
++            1.237874059357526,
++            1.0765404247847654,
++            0.8802958100737694,
++            0.13280658936876208,
++            0.4666799855584124,
+             0.0,
+             0.0,
+             0.0,
+             0.0,
+-            0.35490689124207053,
++            0.5805028814741172,
+             0.0,
+             0.0,
+             0.0,
+@@ -27146,17 +27146,13 @@
+             0.0
+         ],
+         "state_min": [
+-            -1.4924354553222656,
+-            -0.27809593081474304,
+-            -0.18774886429309845,
+-            -2.5354628562927246,
+-            -3.0663280487060547,
+-            -3.0486762523651123,
+             0.0,
+             0.0,
+             0.0,
++            -1.4440139532089233,
++            -0.005390674341470003,
++            -1.1172538995742798,
+             0.0,
+-            -3.212450869184004e-17,
+             0.0,
+             0.0,
+             0.0,
+@@ -27196,17 +27192,21 @@
+             0.0,
+             0.0,
+             0.0,
+-            -1.4863648414611816,
+-            -0.2586335241794586,
+-            -0.06850092858076096,
+-            -2.2642147541046143,
+-            -1.4876768589019775,
+-            -3.0168392658233643,
+             0.0,
+             0.0,
+             0.0,
+             0.0,
+-            -3.212450869184004e-17,
++            -0.9297227263450623,
++            0.0,
++            0.0,
++            -1.5786155462265015,
++            -0.6811146140098572,
++            -0.023512978106737137,
++            0.0,
++            0.0,
++            0.0,
++            0.0,
++            0.0,
+             0.0,
+             0.0,
+             0.0,
+@@ -27276,12 +27276,12 @@
+             0.0
+         ],
+         "state_max": [
+-            1.6732014417648315,
+-            3.3797459602355957,
+-            4.252756595611572,
+-            2.5287232398986816,
+-            3.1440579891204834,
+-            3.0381109714508057,
++            0.912796676158905,
++            2.475478410720825,
++            2.359103202819824,
++            0.9350050091743469,
++            0.6970490217208862,
++            0.0423927828669548,
+             0.0,
+             0.0,
+             0.0,
+@@ -27326,12 +27326,12 @@
+             0.0,
+             0.0,
+             0.0,
+-            1.7537026405334473,
+-            3.0546703338623047,
+-            3.8525187969207764,
+-            2.0974574089050293,
+-            1.8103265762329102,
+-            3.1366536617279053,
++            0.0,
++            2.512030601501465,
++            2.4936022758483887,
++            1.2990506887435913,
++            0.18519233167171478,
++            1.1079506874084473,
+             0.0,
+             0.0,
+             0.0,
+diff --git a/policy/RDT_1B/rdt/data/hdf5_vla_dataset.py b/policy/RDT_1B/rdt/data/hdf5_vla_dataset.py
+index e3775ea..e4c4e73 100644
+--- a/policy/RDT_1B/rdt/data/hdf5_vla_dataset.py
++++ b/policy/RDT_1B/rdt/data/hdf5_vla_dataset.py
+@@ -355,16 +355,23 @@ class HDF5VLADataset:
+     def _lang_embed_path(self, file_path):
+         if not self.lang_embed_dir:
+             return None
+-        rel = os.path.relpath(file_path, self.HDF5_DIR)
+-        parts = rel.split(os.sep)
+-        if len(parts) >= 3 and parts[-2] == "data":
+-            task_env = os.path.join(parts[0], parts[1])
+-        elif len(parts) >= 2:
+-            task_env = parts[0]
+-        else:
+-            return None
+-        dataset_key = os.path.basename(os.path.normpath(self.HDF5_DIR))
+-        return os.path.join(self.lang_embed_dir, dataset_key, task_env, "lang_embed.pt")
++
++        rel = os.path.relpath(
++            file_path,
++            self.HDF5_DIR,
++        )
++
++        rel_no_ext = os.path.splitext(rel)[0]
++
++        dataset_key = os.path.basename(
++            os.path.normpath(self.HDF5_DIR)
++        )
++
++        return os.path.join(
++            self.lang_embed_dir,
++            dataset_key,
++            rel_no_ext + ".pt",
++        )
+ 
+     def _get_instruction(self, file_path, h5_file):
+         embed_path = self._lang_embed_path(file_path)
+diff --git a/policy/RDT_1B/rdt/scripts/encode_robodojo_lang.py b/policy/RDT_1B/rdt/scripts/encode_robodojo_lang.py
+index 92843dd..1f58265 100644
+--- a/policy/RDT_1B/rdt/scripts/encode_robodojo_lang.py
++++ b/policy/RDT_1B/rdt/scripts/encode_robodojo_lang.py
+@@ -1,5 +1,6 @@
+ import argparse
+ import fnmatch
++import json
+ import os
+ 
+ import h5py
+@@ -45,9 +46,14 @@ def _dataset_key(data_root):
+     return os.path.basename(os.path.normpath(data_root))
+ 
+ 
+-def _embed_save_path(output_root, data_root, task_dir):
+-    rel = os.path.relpath(task_dir, data_root)
+-    return os.path.join(output_root, _dataset_key(data_root), rel, "lang_embed.pt")
++def _embed_save_path(output_root, data_root, episode_path):
++    rel = os.path.relpath(episode_path, data_root)
++    rel_no_ext = os.path.splitext(rel)[0]
++    return os.path.join(
++        output_root,
++        _dataset_key(data_root),
++        rel_no_ext + ".pt",
++    )
+ 
+ 
+ def _hdf5_dir(task_dir):
+@@ -63,17 +69,74 @@ def _first_hdf5(task_dir):
+     raise FileNotFoundError(f"No .hdf5 file found in {hdf5_dir}")
+ 
+ 
+-def _read_instruction(task_dir):
+-    with h5py.File(_first_hdf5(task_dir), "r") as h5_file:
++def _episode_index(episode_path):
++    stem = os.path.splitext(os.path.basename(episode_path))[0]
++    digits = "".join(ch for ch in stem if ch.isdigit())
++    if not digits:
++        raise ValueError(
++            f"Cannot parse episode index from {episode_path}"
++        )
++    return int(digits)
++
++
++def _read_instruction(episode_path):
++    with h5py.File(episode_path, "r") as h5_file:
++        # Preferred format: a single already-selected instruction.
+         if "instruction" in h5_file:
+             instruction = h5_file["instruction"][()]
+-        else:
+-            instruction = h5_file.attrs.get("language_instruction", "")
+-    if isinstance(instruction, bytes):
+-        instruction = instruction.decode("utf-8")
+-    if not instruction:
+-        raise ValueError(f"No instruction found in {task_dir}")
+-    return str(instruction)
++            if isinstance(instruction, bytes):
++                instruction = instruction.decode("utf-8")
++            if instruction:
++                return str(instruction)
++
++        # RoboTwin native/XPolicyLab collection:
++        # one episode owns a JSON list of candidate instructions.
++        if "instructions" in h5_file:
++            raw = h5_file["instructions"][()]
++
++            if isinstance(raw, bytes):
++                raw = raw.decode("utf-8")
++
++            if isinstance(raw, str):
++                instructions = json.loads(raw)
++            elif hasattr(raw, "tolist"):
++                instructions = raw.tolist()
++            else:
++                instructions = list(raw)
++
++            if isinstance(instructions, str):
++                instructions = [instructions]
++
++            instructions = [
++                str(x) for x in instructions if str(x)
++            ]
++
++            if not instructions:
++                raise ValueError(
++                    f"Empty instructions list in {episode_path}"
++                )
++
++            episode_idx = _episode_index(episode_path)
++
++            # Match RoboTwin converter default behavior:
++            # episode i uses instruction i % N.
++            return instructions[
++                episode_idx % len(instructions)
++            ]
++
++        instruction = h5_file.attrs.get(
++            "language_instruction", ""
++        )
++
++        if isinstance(instruction, bytes):
++            instruction = instruction.decode("utf-8")
++
++        if instruction:
++            return str(instruction)
++
++    raise ValueError(
++        f"No instruction found in {episode_path}"
++    )
+ 
+ 
+ def _encode_instructions(text_encoder, tokenizer, instructions, device):
+@@ -133,23 +196,57 @@ def main():
+     os.makedirs(args.output_root, exist_ok=True)
+ 
+     pending = []
+-    for task_dir in task_dirs:
+-        save_path = _embed_save_path(args.output_root, args.data_root, task_dir)
+-        if args.overwrite or not os.path.exists(save_path):
+-            pending.append((task_dir, save_path, _read_instruction(task_dir)))
+ 
+-    for task_dir, save_path, instruction in tqdm(pending, desc="Encoding RoboDojo instructions"):
++    for task_dir in task_dirs:
++        hdf5_dir = _hdf5_dir(task_dir)
++
++        episode_paths = sorted(
++            os.path.join(hdf5_dir, filename)
++            for filename in os.listdir(hdf5_dir)
++            if filename.endswith(".hdf5")
++        )
++
++        for episode_path in episode_paths:
++            save_path = _embed_save_path(
++                args.output_root,
++                args.data_root,
++                episode_path,
++            )
++
++            if args.overwrite or not os.path.exists(save_path):
++                pending.append(
++                    (
++                        episode_path,
++                        save_path,
++                        _read_instruction(episode_path),
++                    )
++                )
++
++    for episode_path, save_path, instruction in tqdm(
++        pending,
++        desc="Encoding RoboDojo episode instructions",
++    ):
+         os.makedirs(os.path.dirname(save_path), exist_ok=True)
+-        embedding = _encode_instructions(text_encoder, tokenizer, [instruction], device)[0]
++
++        embedding = _encode_instructions(
++            text_encoder,
++            tokenizer,
++            [instruction],
++            device,
++        )[0]
++
+         torch.save(embedding, save_path)
+-        tqdm.write(f"saved {save_path}: {instruction}")
++
++        tqdm.write(
++            f"saved {save_path}: {instruction}"
++        )
+ 
+     empty_embed_path = os.path.join(args.output_root, "empty_lang_embed.pt")
+     if args.overwrite or not os.path.exists(empty_embed_path):
+         torch.save(_encode_instructions(text_encoder, tokenizer, [""], device)[0], empty_embed_path)
+         print(f"saved {empty_embed_path}")
+ 
+-    print(f"Finished. Encoded {len(pending)} task/env groups.")
++    print(f"Finished. Encoded {len(pending)} episodes.")
+ 
+ 
+ if __name__ == "__main__":

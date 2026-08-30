@@ -1,0 +1,69 @@
+# =========================
+# Model checkpoints / weights
+# =========================
+checkpoints/
+weights/
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# =========================
+# Datasets
+# =========================
+/data/
+/datasets/
+policy/rdt_1b/data/
+policy/rdt_1b/lang_embeds/
+policy/rdt_1b/results/
+robotwin/data/
+robotwin/eval_result/
+robotwin/assets/
+robotwin/_ms_assets/
+*.hdf5
+*.h5
+
+# =========================
+# Training / experiment logs
+# =========================
+wandb/
+logs/
+*.log
+
+# =========================
+# Debug artifacts
+# =========================
+*.npy
+*.npz
+*.pkl
+*.mp4
+*.glb
+*.obj
+*.ply
+*.dae
+*.stl
+*.zip
+*.before_*
+*.bak
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+
+# =========================
+# IDE / OS
+# =========================
+.vscode/
+.idea/
+.DS_Store
+
+# =========================
+# Temporary
+# =========================
+tmp/
+cache/
+.cache/
+*.tmp

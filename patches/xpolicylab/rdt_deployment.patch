@@ -1,0 +1,44 @@
+diff --git a/policy/RDT_1B/deploy.yml b/policy/RDT_1B/deploy.yml
+index c60b86e..7973181 100644
+--- a/policy/RDT_1B/deploy.yml
++++ b/policy/RDT_1B/deploy.yml
+@@ -1,4 +1,3 @@
+-# Basic experiment configuration
+ policy_name: RDT_1B
+ protocol: ws
+ host: localhost
+@@ -6,25 +5,23 @@ bench_name: null
+ task_name: null
+ env_cfg_type: null
+ seed: null
+-eval_batch: true
+-
++eval_batch: false
+ checkpoint_num: null
+-result_dir: "./results/RDT_1B/"
++result_dir: ./results/RDT_1B/
+ obs_transform_pipeline: null
+-
+-# Model / action configuration
+ action_type: joint
+ prompt: null
+-checkpoint_path: null
++checkpoint_path: ./weights/RDT/rdt-1b
+ model_path: null
+ config_path: null
+-text_encoder_path: null
+-vision_encoder_path: null
++text_encoder_path: ./weights/RDT/t5-v1_1-xxl
++vision_encoder_path: ./weights/RDT/siglip-so400m-patch14-384
+ model_root: null
+-ctrl_freq: 25
++ctrl_freq: 15
+ chunk_size: 64
+-image_size: [640, 480]
++image_size:
++- 640
++- 480
+ device: cuda
+ dtype: bfloat16
+-
+ port: 6000

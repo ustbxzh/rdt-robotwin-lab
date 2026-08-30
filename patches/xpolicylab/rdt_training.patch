@@ -1,0 +1,21 @@
+diff --git a/policy/RDT_1B/train.sh b/policy/RDT_1B/train.sh
+index 4b386ed..3e1f589 100644
+--- a/policy/RDT_1B/train.sh
++++ b/policy/RDT_1B/train.sh
+@@ -29,7 +29,7 @@ NUM_GPUS="$(tr ',' '\n' <<< "${gpu_id}" | sed '/^$/d' | wc -l | xargs)"
+ export CUDA_VISIBLE_DEVICES="${gpu_id}"
+ export NCCL_IB_HCA="${NCCL_IB_HCA:-mlx5_0:1,mlx5_1:1,mlx5_2:1,mlx5_3:1,mlx5_4:1,mlx5_7:1,mlx5_8:1,mlx5_9:1}"
+ export NCCL_IB_DISABLE="${NCCL_IB_DISABLE:-1}"
+-export NCCL_SOCKET_IFNAME="${NCCL_SOCKET_IFNAME:-eth0}"
++export NCCL_SOCKET_IFNAME="${NCCL_SOCKET_IFNAME:-lo}"
+ export NCCL_DEBUG="${NCCL_DEBUG:-INFO}"
+ export NCCL_NVLS_ENABLE="${NCCL_NVLS_ENABLE:-0}"
+ export RDT_HDF5_DIR="${POLICY_DIR}/data/${data_setting}"
+@@ -78,6 +78,7 @@ deepspeed ${RDT_DEEPSPEED_ARGS} main.py \
+     --output_dir="${OUTPUT_DIR}" \
+     --seed="${seed}" \
+     --train_batch_size="${RDT_TRAIN_BATCH_SIZE:-32}" \
++    --gradient_accumulation_steps="${RDT_GRADIENT_ACCUMULATION_STEPS:-1}" \
+     --sample_batch_size="${RDT_SAMPLE_BATCH_SIZE:-64}" \
+     --max_train_steps="${RDT_MAX_TRAIN_STEPS:-200000}" \
+     --checkpointing_period="${RDT_CHECKPOINTING_PERIOD:-1000}" \

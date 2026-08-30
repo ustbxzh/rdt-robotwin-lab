@@ -1,0 +1,8 @@
+GPU: NVIDIA RTX 6000 Ada Generation
+NVIDIA Driver: 580.173.02
+PyTorch: 2.1.0+cu121
+CUDA Runtime: 12.1
+CUDA Toolkit: 12.1
+nvcc: 12.1.105
+DeepSpeed: 0.14.2
+FlashAttention: 2.5.5
