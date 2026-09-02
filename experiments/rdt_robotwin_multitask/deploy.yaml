@@ -1,0 +1,23 @@
+experiment: rdt_robotwin_multitask
+policy_name: rdt_1b
+runtime_config: policy/rdt_1b/deploy.yml
+checkpoint_tag: rdt_robotwin_multitask
+embodiment: ARX-X5
+env_cfg_type: arx_x5
+action_type: joint
+control_frequency: 15
+action_chunk_size: 64
+image_history_size: 2
+precision: bfloat16
+transport: websocket
+
+vision:
+  cameras:
+    - head
+    - left_wrist
+    - right_wrist
+
+model_assets:
+  policy: policy/rdt_1b/weights/RDT/rdt-1b
+  language: policy/rdt_1b/weights/RDT/t5-v1_1-xxl
+  vision: policy/rdt_1b/weights/RDT/siglip-so400m-patch14-384
