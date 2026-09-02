@@ -1,0 +1,6 @@
+name: blocks_ranking_size
+category: visual_size_reasoning_long_horizon
+source: robotwin/envs/blocks_ranking_size.py
+embodiment: ARX-X5
+instruction_split_train: seen
+success_predicate: check_success
