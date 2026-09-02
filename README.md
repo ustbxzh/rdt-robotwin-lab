@@ -57,135 +57,89 @@ the `.pt` path from the HDF5 relative path. The experiment uses 15 Hz control.
 
 ## Data pipeline
 
-The RoboTwin-to-RDT path is implemented as a complete robot-demonstration
-pipeline rather than a simple offline dataset conversion:
+The data path is treated as a robot-data engineering problem rather than a
+file-format conversion. Task-specific demonstrations are generated in
+**RoboTwin/SAPIEN**, validated at trajectory level, serialized as multimodal
+HDF5 episodes, and then aligned to the temporal, language, control-frequency,
+and numerical conventions expected by RDT.
 
 ```text
-RoboTwin Task
-    ↓
-Scene Randomization
-    ↓
-Expert Motion Planning
-    ↓
-Successful Trajectory Filtering
-    ↓
-Trajectory Replay + Observation Capture
-    ↓
-Episode-level HDF5
-    ↓
+RoboTwin/SAPIEN Task
+        ↓
+Expert Planning + Success Gate
+        ↓
+Seed Replay + Multimodal Capture
+        ↓
+Episode HDF5
+        ↓
 Temporal / Language / Frequency Alignment
-    ↓
-Normalization & Dataset Statistics
-    ↓
+        ↓
+Normalization + Dataset Validation
+        ↓
 RDT Fine-tuning Dataset
 ```
 
-### 1. Expert demonstration generation and quality filtering
+### 1. Simulation expert data and quality gate
 
-Task definitions such as `robotwin/envs/adjust_bottle.py` and
-`robotwin/envs/pick_dual_bottles.py` provide three key pieces of the data
-source: randomized scene construction, expert motion primitives, and the final
-`check_success()` predicate.
+Instead of VR/teleoperation, this project uses RoboTwin's **programmatic expert
+motion primitives** as the demonstration source. SAPIEN provides the physics
+simulation, while RoboTwin supplies task definitions, embodiment/camera
+configuration, deterministic seeds, motion planning, and task-specific success
+predicates.
 
-`robotwin/scripts/collect_data.py` first searches randomized seeds for which
-both motion planning and task execution succeed. Only trajectories satisfying
+`robotwin/scripts/collect_data.py` accepts an episode only when
 
 ```text
 plan_success && check_success()
 ```
 
-are accepted. Their joint paths and seeds are stored, then replayed under the
-same task initialization for observation capture. The replayed trajectory is
-checked again before the episode is kept, so failed expert motions are filtered
-before they enter the training set.
+holds. The successful seed and joint path are then replayed for observation
+capture and checked again before serialization. This is the primary data
+cleaning strategy in the project: **trajectory-level validity filtering** rather
+than applying artificial sensor-denoising rules to simulator data.
 
-This gives the data pipeline an explicit **trajectory-level validity gate**
-instead of relying on raw simulator rollouts.
+Representative task definitions live in `robotwin/envs/adjust_bottle.py` and
+`robotwin/envs/pick_dual_bottles.py`.
 
-### 2. Multimodal episode schema
+### 2. Multimodal schema and control-time alignment
 
-Each successful demonstration is serialized as one HDF5 episode containing
-vision, proprioception, actions, language, and control metadata:
+Each accepted episode keeps all policy conditions inside one HDF5 boundary:
 
 ```text
 episode_xxxxxxx.hdf5
-├── /vision
-│   ├── cam_head/colors
-│   ├── cam_left_wrist/colors
-│   └── cam_right_wrist/colors
-├── /state
-│   ├── left_arm_joint_states
-│   ├── left_ee_joint_states
-│   ├── right_arm_joint_states
-│   └── right_ee_joint_states
-├── /action
-│   ├── left_arm_joint_states
-│   ├── left_ee_joint_states
-│   ├── right_arm_joint_states
-│   └── right_ee_joint_states
+├── /vision/{cam_head, cam_left_wrist, cam_right_wrist}/colors
+├── /state/{left/right arm, left/right end-effector}
+├── /action/{left/right arm, left/right end-effector}
 ├── /instructions
 └── /additional_info/frequency
 ```
 
-The head camera supplies global scene context, while the two wrist cameras
-retain local manipulation evidence during grasping, occlusion, and bimanual
-interaction. This keeps the visual observations and the robot state/action
-stream inside the same episode boundary.
+The head camera provides global scene context and the two wrist cameras retain
+local manipulation evidence around grasp/contact/occlusion. Because these
+signals are sampled from the same simulator step, the project does not invent a
+hardware-style 30 Hz camera / 100 Hz encoder synchronization problem; the key
+alignment issue is the **control semantics between observation and next action**.
 
-### 3. State-action temporal alignment
-
-For imitation learning, the supervision target associated with the current
-observation is the **next control state/action**, not the state that has already
-been observed. For a captured joint sequence
+For a joint trajectory `q[0..N-1]`, the training sequence is constructed as
 
 ```text
-q[0], q[1], ..., q[N-1]
-```
-
-the native collection path constructs
-
-```text
+RGB    = RGB[:-1]
 state  = q[:-1]
 action = q[1:]
-RGB    = RGB[:-1]
 ```
 
-so that every training sample follows the same control semantics:
+so each sample follows `RGB(t), State(t) → Action(t+1)` and all modalities share
+an `N-1` horizon. The demonstration and policy paths also keep the **15 Hz**
+control setting consistent, since control frequency determines the physical
+time represented by an action step and an action chunk.
 
-```text
-RGB(t), State(t) → Action(t+1)
-```
+See `docs/dataset_alignment.md` for the exact sequence convention.
 
-All modalities therefore share an `N-1` horizon. This avoids a one-step
-semantic mismatch between robot observation and action supervision. The exact
-alignment is documented in `docs/dataset_alignment.md`.
+### 3. Episode-level semantic alignment
 
-### 4. Control-frequency consistency
-
-The RoboTwin fine-tuning setup uses **15 Hz** control. The frequency is treated
-as part of the action semantics rather than passive metadata because it defines
-the physical duration represented by one action step and by an entire action
-chunk.
-
-The same control-frequency setting is therefore kept consistent across
-
-```text
-demonstration data
-        =
-training conditioning
-        =
-policy execution
-```
-
-which prevents an action sequence from representing different physical time
-horizons during training and inference.
-
-### 5. Episode-level language alignment
-
-Language conditioning is aligned at demonstration granularity rather than by
-sharing one embedding for an entire task. `policy/rdt_1b/encode_language.py`
-encodes each episode instruction with T5 and mirrors the HDF5 path under the
-language-embedding directory:
+Language is aligned at demonstration granularity instead of assigning one
+embedding to an entire task. `policy/rdt_1b/encode_language.py` encodes the
+instruction of each episode with T5 and mirrors its relative HDF5 path:
 
 ```text
 data/.../episode_0000007.hdf5
@@ -193,38 +147,40 @@ data/.../episode_0000007.hdf5
 lang_embeds/.../episode_0000007.pt
 ```
 
-The HDF5 training loader derives the language path from the episode path, so
-vision, state, action, and language all originate from the same demonstration.
-This turns language handling from task-level labeling into **episode-level
-semantic alignment**.
+The HDF5 loader derives the corresponding language path from the episode path,
+keeping **vision + proprioception + action + language** semantically bound to the
+same demonstration. This prevents task-level language labels from silently
+mismatching an individual trajectory.
 
-### 6. Normalization and dataset statistics
+### 4. Distribution adaptation and robustness boundary
 
-RoboTwin robot states/actions must be adapted to the numerical distribution
-expected by the pretrained RDT policy. The fine-tuning pipeline therefore uses
-task-specific dataset statistics rather than blindly reusing unrelated robot
-data statistics.
+RoboTwin state/action values are normalized with task-specific statistics before
+fine-tuning; the `adjust_bottle` statistics used by the local experiment are
+retained in `experiments/adjust_bottle/dataset_stat.json` and injected into the
+RDT HDF5 loader.
 
-For the `adjust_bottle` experiment, the resulting statistics are retained in
+The task configuration also makes the data distribution explicit. The retained
+`demo_clean.yml` collects 50 episodes with background/light/camera/table domain
+randomization disabled, establishing a controlled training distribution.
+RoboTwin exposes these randomization axes separately for robustness evaluation,
+which allows later Clean-vs-Randomized analysis without confusing data cleaning
+with domain randomization.
 
-```text
-experiments/adjust_bottle/dataset_stat.json
-```
+This repository is simulation-only and does not claim a real-robot or Sim2Real
+result. Foundation-model pretraining data belongs to the upstream RDT pipeline;
+this project's data work starts from RoboTwin task-specific demonstrations and
+their adaptation to RDT fine-tuning.
 
-and are supplied to the RDT HDF5 loader during fine-tuning. Together with the
-expert-success gate and episode-level correspondence checks, this forms the
-final dataset preparation stage before optimization.
+### Data-engineering capabilities represented here
 
-### Data-engineering capabilities represented by this pipeline
-
-| Capability | Project implementation |
+| Engineering capability | Concrete implementation |
 | --- | --- |
-| Expert data generation | Task-level motion primitives + successful-seed replay |
+| Expert data generation | RoboTwin/SAPIEN motion primitives + deterministic seed replay |
+| Data quality governance | Planning/success gate + post-replay episode validation |
 | Multimodal data modeling | Three RGB views + bimanual state/action + instruction |
-| Temporal alignment | `State(t) → Action(t+1)` with a shared `N-1` horizon |
-| Control-time semantics | 15 Hz conditioning kept consistent across train/inference |
-| Cross-modal alignment | One T5 embedding per HDF5 episode |
-| Distribution adaptation | Task-specific RDT state/action dataset statistics |
+| Temporal/control alignment | `State(t) → Action(t+1)` + consistent 15 Hz semantics |
+| Cross-modal alignment | One T5 embedding bound to each HDF5 episode |
+| Distribution adaptation | Task-specific state/action statistics + explicit clean/randomized boundary |
 
 ## External requirements
 
