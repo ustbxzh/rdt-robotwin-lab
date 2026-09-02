@@ -12,7 +12,9 @@ result_dir: ./results/rdt_1b/
 obs_transform_pipeline: null
 action_type: joint
 prompt: null
-checkpoint_path: ./weights/RDT/rdt-1b
+# Keep explicit checkpoint paths unset during evaluation so ckpt_name resolves
+# policy/rdt_1b/checkpoints/{bench}-{experiment}-{env}-{action}-{seed}.
+checkpoint_path: null
 model_path: null
 config_path: null
 text_encoder_path: ./weights/RDT/t5-v1_1-xxl
