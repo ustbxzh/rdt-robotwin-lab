@@ -55,6 +55,45 @@ The encoder selects the episode instruction stored in the HDF5 file (or the
 matching candidate using the episode index), while the training loader derives
 the `.pt` path from the HDF5 relative path. The experiment uses 15 Hz control.
 
+## RDT model architecture
+
+The model architecture retained in this repository follows the **upstream
+RDT-1B design** and is included to make the training/deployment path
+self-contained; it is not presented as an original architecture contribution
+of this project.
+
+RDT-1B uses a **Diffusion Transformer (DiT)** policy that predicts a future
+action sequence from multimodal robot observations:
+
+```text
+Language ── T5 ────────────────┐
+                               │
+3-camera RGB × 2-frame history │
+        └── SigLIP ────────────┼── modality adapters ──┐
+                               │                       │
+Robot state + validity mask ───┘                       ▼
+                                               RDT / DiT backbone
+Diffusion timestep ────────────────────────────► 28 Transformer blocks
+Control frequency ─────────────────────────────► 2048 hidden / 32 heads
+                                                       │
+                                                       ▼
+                                                64-step Action Chunk
+```
+
+The retained configuration uses a **128-D unified state/action space**, 3
+cameras, 2-frame visual history, and a 64-step prediction horizon. T5 language
+tokens, SigLIP image tokens, and robot state/action tokens are projected into
+the common RDT hidden space through modality-specific adapters. During
+training, DDPM noise is added to the ground-truth action chunk and RDT learns to
+recover the clean sequence; inference starts from Gaussian action noise and
+uses DPM-Solver iterative denoising to produce the final action chunk.
+
+The project-specific work is concentrated around this upstream model: RoboTwin
+data generation/alignment, state/action adaptation, task-level fine-tuning,
+policy serving, and closed-loop evaluation. See
+[`docs/architecture.md`](docs/architecture.md) for the module-level structure,
+dimensions, and train/inference flow.
+
 ## Data pipeline
 
 The data path is treated as a robot-data engineering problem rather than a
