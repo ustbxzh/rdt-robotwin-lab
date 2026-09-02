@@ -1,0 +1,6 @@
+name: clean
+task_config: eval_clean
+instruction_split: seen
+episodes: 100
+domain: training_like
+shared_across_tasks: true
