@@ -1,0 +1,6 @@
+name: randomized
+task_config: eval_randomized
+instruction_split: unseen
+episodes: 100
+domain: randomized_robustness
+shared_across_tasks: true
