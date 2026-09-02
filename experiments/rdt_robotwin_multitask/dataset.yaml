@@ -1,0 +1,23 @@
+experiment: rdt_robotwin_multitask
+bench: RoboTwin
+embodiment: ARX-X5
+env_cfg_type: arx_x5
+action_type: joint
+control_frequency: 15
+collection_profile: train_clean
+source_root: robotwin/data/train_clean
+per_task_demo_target: 50
+sampling: timestep_weighted
+
+tasks:
+  - adjust_bottle
+  - lift_pot
+  - handover_block
+  - blocks_ranking_size
+
+expected_layout: |
+  robotwin/data/train_clean/
+  ├── adjust_bottle/arx_x5/data/*.hdf5
+  ├── lift_pot/arx_x5/data/*.hdf5
+  ├── handover_block/arx_x5/data/*.hdf5
+  └── blocks_ranking_size/arx_x5/data/*.hdf5
