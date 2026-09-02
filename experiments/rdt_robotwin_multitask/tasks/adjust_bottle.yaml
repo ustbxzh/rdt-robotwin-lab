@@ -1,0 +1,6 @@
+name: adjust_bottle
+category: single_object_arm_selection
+source: robotwin/envs/adjust_bottle.py
+embodiment: ARX-X5
+instruction_split_train: seen
+success_predicate: check_success
