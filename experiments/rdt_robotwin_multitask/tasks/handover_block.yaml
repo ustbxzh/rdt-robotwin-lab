@@ -1,0 +1,6 @@
+name: handover_block
+category: bimanual_handover_and_placement
+source: robotwin/envs/handover_block.py
+embodiment: ARX-X5
+instruction_split_train: seen
+success_predicate: check_success
