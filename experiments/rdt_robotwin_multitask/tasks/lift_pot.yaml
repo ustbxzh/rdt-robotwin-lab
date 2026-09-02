@@ -1,0 +1,6 @@
+name: lift_pot
+category: synchronized_bimanual_lift
+source: robotwin/envs/lift_pot.py
+embodiment: ARX-X5
+instruction_split_train: seen
+success_predicate: check_success
