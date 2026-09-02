@@ -1,86 +1,55 @@
 # RDT × RoboTwin Lab
 
-An end-to-end **bimanual VLA adaptation framework** built around released
-RDT-1B and RoboTwin. I built this repository to connect the parts that are
-usually scattered across upstream projects: task construction, expert data
-generation, multimodal alignment, task-specific fine-tuning, policy serving,
-and closed-loop simulation evaluation.
+An end-to-end **bimanual VLA training and simulation framework** built around released RDT-1B and RoboTwin. The project focuses on the engineering path around the upstream model: expert-data generation, multimodal alignment, multi-task adaptation, policy serving, and closed-loop evaluation.
+
+The main experiment uses **one ARX-X5 embodiment, four manipulation tasks, one shared RDT policy, and two evaluation domains**:
 
 ```text
-Task Construction
-→ Expert Planning & Trajectory Filtering
-→ Multiview RGB / State / Action Collection
-→ Temporal / Language / Frequency Alignment
-→ RDT-1B Task Fine-tuning
-→ XPolicyLab Policy Serving
-→ RoboTwin Closed-loop Evaluation
+4 RoboTwin Tasks
+      ↓
+Expert Planning + Successful Trajectory Filtering
+      ↓
+Multiview RGB / State / Action / Language HDF5
+      ↓
+Temporal + Episode-language + Control-frequency Alignment
+      ↓
+Mixed Multi-task Dataset
+      ↓
+ONE RDT-1B Fine-tuning Run
+      ↓
+ONE Shared Checkpoint
+      ↓
+4 Tasks × {Clean, Randomized} Closed-loop Evaluation
 ```
 
 ## What I built
 
-The RDT backbone itself follows the upstream implementation. The project work is
-focused on making that model usable as a complete RoboTwin training and
-evaluation pipeline:
+The RDT backbone follows the upstream implementation. My work is concentrated on making it usable as a complete RoboTwin training/evaluation pipeline:
 
-- **Robot data pipeline** — generate and filter expert trajectories, replay
-  successful seeds, and serialize three-view RGB, bimanual state/action, and
-  language into episode-level HDF5 data.
-- **Multimodal alignment** — align `State(t) → Action(t+1)`, keep 15 Hz control
-  semantics consistent, bind each HDF5 episode to its own T5 embedding, and use
-  task-specific normalization statistics.
-- **Low-shot fine-tuning** — adapt released RDT-1B weights to RoboTwin tasks with
-  roughly 50 demonstrations using DeepSpeed ZeRO-2, BF16, gradient
-  accumulation, checkpointing, and precomputed language embeddings.
-- **Online policy deployment** — connect RoboTwin to an RDT policy server through
-  XPolicyLab, maintain runtime observation history, execute action chunks, and
-  keep checkpoint/input/same-seed audit hooks for debugging.
-- **Reproducible evaluation** — evaluate policy rollouts with the task's own
-  `check_success()` predicate and keep Clean/Randomized settings separated for
-  later robustness analysis.
+- **Expert-data pipeline** — generate programmatic RoboTwin demonstrations, retain only trajectories passing planning and task-success gates, replay successful seeds, and serialize three-view RGB, bimanual state/action, and episode instructions.
+- **Multimodal alignment** — enforce `State(t) → Action(t+1)`, keep the 15 Hz control semantics consistent, and bind each HDF5 episode to its own precomputed T5 embedding.
+- **Shared multi-task adaptation** — combine demonstrations from four tasks on the same ARX-X5 robot into one HDF5 training tree and fine-tune one released RDT-1B checkpoint with DeepSpeed ZeRO-2, BF16 and gradient accumulation.
+- **Online policy deployment** — connect RoboTwin to RDT through XPolicyLab, maintain two-frame observation history, execute 64-step action chunks, and expose checkpoint/input/same-seed audit hooks.
+- **Unified evaluation** — run the same checkpoint on every task under shared Clean and Randomized profiles and use the task's own `check_success()` predicate as the closed-loop metric.
 
-The source snapshot retains representative task implementations for
-`adjust_bottle` and `pick_dual_bottles`. The recorded demo suite below extends
-the evaluation coverage to synchronized lifting, arm-to-arm handover and
-target placement, and multi-object size ordering.
-
-> **Scope.** The project starts from released RDT-1B weights; it does not rerun
-> foundation-model pretraining. Evaluation is currently simulation-only. Model
-> weights, raw datasets, checkpoints, and RoboTwin assets are intentionally not
-> committed.
+> **Scope.** Foundation-model pretraining is retained for source inspection but is not rerun here. Raw HDF5 datasets, model weights, checkpoints and RoboTwin assets remain external to Git. Evaluation is simulation-only.
 
 ## Demo
 
-The four RoboTwin tasks below are ordered from easier, short-horizon control to
-harder, long-horizon bimanual manipulation. **Policy rollout** shows the model's
-closed-loop test result, while **expert demonstration** is the corresponding
-programmatic expert trajectory used to collect the training data. Asset names
-ending in `_ex` denote expert demonstrations.
+The four-task suite progresses from short-horizon single-object control to longer bimanual and multi-object manipulation.
 
 | Difficulty | Task | Policy rollout | Expert demonstration |
 | --- | --- | --- | --- |
-| 1 | **Adjust bottle and hold upright** (`adjust_bottle`) | <img src="assets/task1.gif" alt="RDT policy rollout adjusting a bottle and holding it upright" width="360"> | <img src="assets/task1_ex.gif" alt="Expert demonstration adjusting a bottle and holding it upright" width="360"> |
-| 2 | **Bimanual pot lift** (`lift_pot`) | <img src="assets/task2.gif" alt="RDT policy rollout lifting a pot with both arms" width="360"> | <img src="assets/task2_ex.gif" alt="Expert demonstration lifting a pot with both arms" width="360"> |
-| 3 | **Arm-to-arm block handover and placement** (`handover_block`) | <img src="assets/task3.gif" alt="RDT policy rollout handing over a block and placing it on the target" width="360"> | <img src="assets/task3_ex.gif" alt="Expert demonstration handing over a block and placing it on the target" width="360"> |
-| 4 | **Order blocks from large to small** (`blocks_ranking_size`) | <img src="assets/task4.gif" alt="RDT policy rollout ordering blocks from large to small" width="360"> | <img src="assets/task4_ex.gif" alt="Expert demonstration ordering blocks from large to small" width="360"> |
+| 1 | **Adjust bottle and hold upright** (`adjust_bottle`) | <img src="assets/task1.gif" alt="RDT policy rollout adjusting a bottle" width="360"> | <img src="assets/task1_ex.gif" alt="Expert adjust bottle demonstration" width="360"> |
+| 2 | **Bimanual pot lift** (`lift_pot`) | <img src="assets/task2.gif" alt="RDT policy rollout lifting a pot" width="360"> | <img src="assets/task2_ex.gif" alt="Expert pot lift demonstration" width="360"> |
+| 3 | **Arm-to-arm block handover** (`handover_block`) | <img src="assets/task3.gif" alt="RDT policy rollout handing over a block" width="360"> | <img src="assets/task3_ex.gif" alt="Expert handover demonstration" width="360"> |
+| 4 | **Rank blocks by size** (`blocks_ranking_size`) | <img src="assets/task4.gif" alt="RDT policy rollout ranking blocks" width="360"> | <img src="assets/task4_ex.gif" alt="Expert block-ranking demonstration" width="360"> |
 
-The sequence highlights progressively stronger requirements:
-
-1. **Adjust bottle and hold upright** tests single-object localization, arm
-   selection, grasping, and precise orientation control.
-2. **Bimanual pot lift** adds synchronized grasping of both handles and stable
-   two-arm lifting.
-3. **Arm-to-arm block handover and placement** requires temporal coordination,
-   a reliable transfer between grippers, and precise placement on the blue
-   target.
-4. **Order blocks from large to small** combines visual size reasoning with
-   repeated pick-and-place decisions over a longer horizon, ending with a
-   left-to-right descending-size arrangement.
+The corresponding task definitions are retained in `robotwin/envs/` so the expert motion, scene construction and `check_success()` criteria can be inspected directly.
 
 ## RDT architecture overview
 
-RDT-1B is included here so the training and deployment path can be followed from
-source. The architecture below is **upstream RDT**, not a new model design from
-this project.
+RDT-1B is included so the full training/deployment path can be followed from source. The architecture itself is upstream RDT rather than a new model contribution of this repository.
 
 ```text
 Language ── T5 ────────────────┐
@@ -97,65 +66,51 @@ Control frequency ────────────────────�
                                                 64-step Action Chunk
 ```
 
-The retained configuration uses a **128-D unified state/action space**, three
-cameras, two-frame visual history, and a 64-step prediction horizon. T5,
-SigLIP, and robot state/action tokens are projected into the shared Transformer
-space through modality-specific adapters. Training uses DDPM forward noise on
-the action sequence; inference starts from Gaussian action noise and applies
-DPM-Solver denoising to recover the final action chunk.
-
-See [`docs/architecture.md`](docs/architecture.md) for the module-level mapping
-to `rdt/models/rdt/`, `rdt_runner.py`, and the multimodal encoders.
+The retained configuration uses a 128-D unified state/action space, three cameras, two-frame visual history, and a 64-step prediction horizon. Training uses DDPM forward noise on action chunks; inference applies DPM-Solver denoising. See [`docs/architecture.md`](docs/architecture.md).
 
 ## Robot data pipeline
 
-The data path starts from a RoboTwin task rather than from a pre-built offline
-dataset:
+### 1. Expert demonstration generation
+
+The training data are generated from RoboTwin tasks rather than downloaded as a finished offline dataset. Each task implements scene construction, `play_once()` expert motion and `check_success()`.
 
 ```text
-RoboTwin / SAPIEN Task
-        ↓
-Expert Planning + Success Gate
-        ↓
-Seed Replay + Multimodal Capture
-        ↓
-Episode HDF5
-        ↓
-Temporal / Language / Frequency Alignment
-        ↓
-Normalization + Validation
-        ↓
-RDT Fine-tuning Dataset
-```
-
-### Expert generation and quality filtering
-
-RoboTwin programmatic motion primitives are used to generate demonstrations.
-`robotwin/scripts/collect_data.py` only accepts trajectories satisfying
-
-```text
+Task Definition
+      ↓
+Scene Initialization
+      ↓
+Expert Motion Primitives
+      ↓
 plan_success && check_success()
+      ↓
+Successful Seed + Joint Path
+      ↓
+Replay and Multimodal Capture
+      ↓
+Episode HDF5
 ```
 
-The successful seed and joint path are saved, replayed under the same scene
-initialization for observation capture, and validated again before the episode
-is retained. This gives the dataset an explicit trajectory-level quality gate
-instead of treating every simulator rollout as valid training data.
+The shared collection profile is `robotwin/env_cfg/task_config/train_clean.yml`: **ARX-X5, 50 target episodes/task, three RGB views, joint state/action, 15 Hz**.
 
-### Multimodal and temporal alignment
+Collect all four tasks:
 
-Each accepted episode stores the policy conditions in one HDF5 boundary:
+```bash
+bash scripts/collect_expert_suite.sh 0
+```
+
+The resulting tree is expected under:
 
 ```text
-episode_xxxxxxx.hdf5
-├── /vision/{cam_head, cam_left_wrist, cam_right_wrist}/colors
-├── /state/{left/right arm, left/right end-effector}
-├── /action/{left/right arm, left/right end-effector}
-├── /instructions
-└── /additional_info/frequency
+robotwin/data/train_clean/
+├── adjust_bottle/arx_x5/data/*.hdf5
+├── lift_pot/arx_x5/data/*.hdf5
+├── handover_block/arx_x5/data/*.hdf5
+└── blocks_ranking_size/arx_x5/data/*.hdf5
 ```
 
-For a trajectory `q[0..N-1]`, training samples are constructed as
+### 2. Temporal and semantic alignment
+
+For a joint trajectory `q[0..N-1]`:
 
 ```text
 RGB    = RGB[:-1]
@@ -163,215 +118,152 @@ state  = q[:-1]
 action = q[1:]
 ```
 
-so the supervision semantics remain `RGB(t), State(t) → Action(t+1)` with a
-shared `N-1` horizon. The RoboTwin fine-tuning path keeps control frequency at
-**15 Hz**, so an action step represents the same physical time scale during data
-preparation, training, and policy execution.
-
-### Episode-level language and distribution adaptation
-
-Language is aligned at demonstration granularity:
+so the training target follows `RGB(t), State(t) → Action(t+1)`. Language is aligned at episode granularity:
 
 ```text
-data/.../episode_0000007.hdf5
-             ↕
-lang_embeds/.../episode_0000007.pt
+episode_0000007.hdf5  ↔  episode_0000007.pt
 ```
 
-`policy/rdt_1b/encode_language.py` encodes each episode instruction with T5,
-and the HDF5 loader derives the matching embedding path from the episode path.
-This keeps vision, proprioception, action, and language bound to the same
-trajectory.
+`policy/rdt_1b/encode_language.py` precomputes T5 embeddings and mirrors the HDF5 relative path, keeping vision, proprioception, action and instruction bound to the same demonstration.
 
-Task-specific state/action statistics are used for normalization before
-fine-tuning. The retained `demo_clean.yml` defines a controlled 50-episode data
-setting, while RoboTwin's randomization axes are kept for later robustness
-evaluation. Exact sequence conventions are documented in
-[`docs/dataset_alignment.md`](docs/dataset_alignment.md).
+Prepare the complete four-task HDF5 tree and language embeddings:
 
-## Fine-tuning and evaluation
+```bash
+bash scripts/prepare_multitask_data.sh 0
+```
 
-The downstream experiment is a task adaptation stage rather than a second
-foundation-model training run:
+Dataset statistics are then recomputed from the mixed training tree:
+
+```bash
+bash scripts/compute_dataset_stats.sh
+```
+
+Exact sequence conventions are documented in [`docs/dataset_alignment.md`](docs/dataset_alignment.md).
+
+## Shared multi-task experiment
+
+Runtime authority for the main experiment lives in [`experiments/rdt_robotwin_multitask/`](experiments/rdt_robotwin_multitask/):
 
 ```text
-Released RDT-1B
-      ↓
-~50 RoboTwin Demonstrations
-      ↓
-Task-specific Fine-tuning (~10k-step schedule)
-      ↓
-Policy Server
-      ↓
-Closed-loop RoboTwin Rollout
-      ↓
-check_success()
+experiments/rdt_robotwin_multitask/
+├── dataset.yaml
+├── train.env
+├── deploy.yaml
+├── tasks/
+│   ├── adjust_bottle.yaml
+│   ├── lift_pot.yaml
+│   ├── handover_block.yaml
+│   └── blocks_ranking_size.yaml
+├── eval/
+│   ├── clean.yaml
+│   └── randomized.yaml
+├── stats/
+└── results/
 ```
 
-### Training engineering
+The key distinction is that these are **not four independently trained models**. The task datasets are mixed into one training source and one shared RDT checkpoint is evaluated across the full suite.
 
-`policy/rdt_1b/train.sh` provides the RoboTwin fine-tuning entry point. The
-training path uses **DeepSpeed ZeRO-2 + BF16**, configurable gradient
-accumulation, HDF5 loading, precomputed language embeddings, image augmentation,
-checkpoint save/resume, and W&B-compatible reporting. CUDA/NCCL settings are
-exposed as runtime configuration so local communication workarounds do not leak
-into model logic.
+### Training
 
-The retained environment records an **NVIDIA RTX 6000 Ada**, PyTorch 2.1,
-CUDA 12.1, DeepSpeed 0.14.2, and FlashAttention 2.5.5.
+The local adaptation schedule in `train.env` uses a 10k-step run with checkpoints every 2k steps, BF16, DeepSpeed ZeRO-2 and gradient accumulation. This is the local constrained experiment schedule rather than the upstream RDT recommended foundation-scale recipe.
 
-### Training diagnostics
-
-I separate optimization failures from data-conditioning failures during
-training. Loss/NaN behavior, learning rate, VRAM and throughput are checked
-alongside HDF5 structure, normalization statistics, language embeddings, action
-masks, and control frequency. Diffusion reconstruction loss is useful for
-optimization monitoring, but final policy quality is determined by closed-loop
-task completion rather than loss alone.
-
-### Closed-loop evaluation
-
-```text
-RoboTwin Observation
-        ↓  WebSocket / TCP
-RDT Policy Server
-        ↓
-64-step Action Chunk
-        ↓
-RoboTwin Execution
-        ↓
-Task-specific check_success()
+```bash
+bash scripts/train_multitask.sh 0 0
+#                              GPU seed
 ```
 
-`robotwin/scripts/eval_policy_xpolicylab.py` stores outputs by task/checkpoint
-and provides same-seed and fixed-instruction audit hooks. Initial qpos, camera
-observations, instruction, and the first predicted action chunk can be captured
-together to distinguish environment differences from policy-input or
-policy-output differences.
+### Evaluation
 
-Clean and Randomized settings are treated as different evaluation questions:
-Clean measures task execution under the training-like distribution, while
-Randomized measures robustness to scene, lighting, background, object-pose, and
-camera changes. Upstream RoboTwin/RDT results are used as reference benchmarks
-only when the evaluation protocol is aligned.
+The same checkpoint is evaluated under two common RoboTwin profiles:
 
-## Online inference and deployment
+- **Clean** — training-like environment, seen instruction split.
+- **Randomized** — randomized background/table height/lighting/clutter, unseen instruction split.
 
-The deployment path uses XPolicyLab to decouple RoboTwin from the RDT model
-process:
+This produces an explicit `4 tasks × 2 domains = 8 conditions` matrix.
 
-```text
-RoboTwin
-  RGB / qpos / instruction
-        ↓
-XPolicyLab Client ── WebSocket/TCP ── RDT Policy Server
-                                      ↓
-                         preprocessing + 2-frame history
-                                      ↓
-                              T5 / SigLIP / RDT
-                                      ↓
-                              64-step Action Chunk
-        ┌─────────────────────────────┘
-        ▼
-RoboTwin joint control → next observation → next policy query
+```bash
+# all four tasks, both domains
+bash scripts/eval_multitask_suite.sh rdt_robotwin_multitask all 0 0 0
+
+# or one domain only
+bash scripts/eval_multitask_suite.sh rdt_robotwin_multitask clean 0 0 0
 ```
 
-`policy/rdt_1b/model.py` converts each observation to three RGB views, bimanual
-joint state, and an instruction, maintains a per-environment two-frame history,
-and caches the episode language embedding. The runtime contract is explicit:
-**joint-space control, 15 Hz, 64-step chunks, BF16 CUDA inference**.
+RoboTwin observations are sent to the XPolicyLab RDT server; the model returns a 64-step action chunk, which is executed in closed loop until the task succeeds or terminates.
 
-The deployment code also retains checkpoint-load, input, and same-seed audits.
-These diagnostics make it possible to separate checkpoint/configuration errors,
-observation-schema mismatches, policy outputs, and simulator execution when a
-rollout stalls or drifts. Long-horizon failures are analyzed as a closed-loop
-problem: small action errors can change later observations and compound over the
-rest of the trajectory.
+## Model assets
+
+Weights are not committed. The project uses the official released components:
+
+| Component | Official source | Expected path |
+| --- | --- | --- |
+| RDT-1B | [robotics-diffusion-transformer/rdt-1b](https://huggingface.co/robotics-diffusion-transformer/rdt-1b) | `policy/rdt_1b/weights/RDT/rdt-1b` |
+| T5-v1.1-XXL | [google/t5-v1_1-xxl](https://huggingface.co/google/t5-v1_1-xxl) | `policy/rdt_1b/weights/RDT/t5-v1_1-xxl` |
+| SigLIP SO400M Patch14-384 | [google/siglip-so400m-patch14-384](https://huggingface.co/google/siglip-so400m-patch14-384) | `policy/rdt_1b/weights/RDT/siglip-so400m-patch14-384` |
+
+Check local assets or explicitly download with the Hugging Face CLI:
+
+```bash
+bash scripts/setup_models.sh
+bash scripts/setup_models.sh download
+```
+
+More details: [`docs/model_assets.md`](docs/model_assets.md).
 
 ## Results
 
-This section is reserved for the final experiment summary. Local results and
-upstream reference numbers will be presented separately so the provenance of
-each metric remains clear.
+Final quantitative results will be added under `experiments/rdt_robotwin_multitask/results/` and summarized here. The planned report keeps local rollout metrics and upstream RoboTwin/RDT reference numbers separate.
 
-Planned result views:
+| Task | Clean | Randomized | Robustness retention |
+| --- | ---: | ---: | ---: |
+| adjust_bottle | TBD | TBD | TBD |
+| lift_pot | TBD | TBD | TBD |
+| handover_block | TBD | TBD | TBD |
+| blocks_ranking_size | TBD | TBD | TBD |
 
-- task success rate for representative RoboTwin tasks;
-- Clean vs. Randomized robustness comparison;
-- `adjust_bottle` vs. `pick_dual_bottles` task-complexity comparison;
-- qualitative rollout/failure cases;
-- upstream RDT/RoboTwin benchmark references under the matching protocol.
-
-<!--
-Planned local result table:
-
-| Task | Setting | Episodes | Success Rate | Notes |
-| --- | --- | ---: | ---: | --- |
-| adjust_bottle | Clean |  |  |  |
-| adjust_bottle | Randomized |  |  |  |
-| pick_dual_bottles | Clean |  |  |  |
-| pick_dual_bottles | Randomized |  |  |  |
--->
+Planned analysis includes per-task success rate, mean Clean/Randomized success, robustness retention, task-complexity comparison and qualitative failure cases.
 
 ## Repository layout
 
 ```text
 rdt-robotwin-lab/
-├── rdt/                    # RDT Transformer, diffusion runner, encoders, trainer
-├── robotwin/               # tasks, expert collection, conversion, evaluation
+├── rdt/                    # upstream RDT core retained for source-level completeness
+├── robotwin/               # task definitions, expert collection and closed-loop evaluation
 ├── policy/
-│   ├── rdt_1b/             # RoboTwin adaptation, training, inference
-│   └── xpolicylab/         # policy client/server runtime
-├── experiments/            # task statistics and experiment artifacts
-├── configs/                # retained configuration snapshots
-├── scripts/                # end-to-end entry points
-├── docs/                   # architecture and data-alignment notes
-├── environment/            # software / CUDA environment records
-└── patches/                # modification history for auditability
+│   ├── rdt_1b/             # RoboTwin ↔ RDT data/training/inference adaptation
+│   └── xpolicylab/         # policy client/server transport
+├── experiments/
+│   └── rdt_robotwin_multitask/  # one shared-policy experiment
+├── scripts/                # project-level one-command entry points
+├── docs/                   # architecture, data alignment and model assets
+├── environment/            # software/CUDA records
+└── patches/                # retained modification history
 ```
 
-## Quick start
+## End-to-end quick start
 
 ```bash
-# 1. Collect expert demonstrations
-bash scripts/collect_demo.sh adjust_bottle demo_clean 0
+# 1. Prepare RDT / T5 / SigLIP
+bash scripts/setup_models.sh
 
-# 2. Prepare/link the RoboTwin HDF5 dataset
-bash scripts/prepare_dataset.sh adjust_bottle demo_clean 50
+# 2. Collect expert data for all four tasks
+bash scripts/collect_expert_suite.sh 0
 
-# 3. Encode one language embedding per episode
-bash scripts/encode_language.sh RoboTwin adjust_bottle arx_x5 joint 50 /path/to/data --gpu 0
+# 3. Link the mixed HDF5 tree and precompute episode language embeddings
+bash scripts/prepare_multitask_data.sh 0
 
-# 4. Fine-tune released RDT-1B
-bash scripts/finetune_rdt.sh RoboTwin adjust_bottle arx_x5 joint 0 0
+# 4. Compute statistics from the mixed dataset
+bash scripts/compute_dataset_stats.sh
 
-# 5. Start the policy server
-bash scripts/serve_rdt.sh
+# 5. Fine-tune one shared RDT policy
+bash scripts/train_multitask.sh 0 0
 
-# 6. Run RoboTwin closed-loop evaluation
-bash scripts/eval_robotwin.sh RoboTwin adjust_bottle <checkpoint> arx_x5 joint 0 0 0 rdt_1b robotwin
+# 6. Evaluate the same checkpoint on 4 tasks × 2 domains
+bash scripts/eval_multitask_suite.sh rdt_robotwin_multitask all 0 0 0
 ```
 
-The official upstream pretraining entry is retained for source inspection via
-`bash scripts/pretrain_rdt.sh`; it is not part of the local task-fine-tuning
-experiment.
-
-## External requirements
-
-Model assets can be placed or symlinked under:
-
-```text
-policy/rdt_1b/weights/RDT/
-├── rdt-1b/
-├── t5-v1_1-xxl/
-└── siglip-so400m-patch14-384/
-```
-
-RoboTwin simulation assets can be linked under `robotwin/assets` or provided via
-`ROBOTWIN_ASSETS_ROOT`.
+RoboTwin assets can be linked under `robotwin/assets` or supplied with `ROBOTWIN_ASSETS_ROOT`.
 
 ## Attribution
 
-RDT and RoboTwin sources are MIT licensed; XPolicyLab is Apache-2.0. See
-`THIRD_PARTY_NOTICES.md` and the component license files for upstream revisions
-and modification scope.
+RDT and RoboTwin sources are MIT licensed; XPolicyLab is Apache-2.0. See `THIRD_PARTY_NOTICES.md` and the component license files for upstream revisions and modification scope.
