@@ -308,6 +308,85 @@ are treated as **reference benchmarks**; results are only compared directly
 when embodiment, data protocol, control mode, rollout count, and success
 predicate are aligned.
 
+## Online inference and deployment
+
+The deployment target in this repository is an **online RoboTwin simulation
+loop**, not a hard real-time robot controller. XPolicyLab separates policy
+inference from the simulator through a WebSocket/TCP service boundary, so
+observation transport, preprocessing, model inference, action conversion, and
+simulation execution can be diagnosed independently.
+
+```text
+RoboTwin
+  RGB / qpos / instruction
+        ↓
+XPolicyLab Client ── WebSocket/TCP ── RDT Policy Server
+                                      ↓
+                         preprocessing + 2-frame history
+                                      ↓
+                              T5 / SigLIP / RDT
+                                      ↓
+                              64-step Action Chunk
+        ┌─────────────────────────────┘
+        ▼
+RoboTwin joint control → next observation → next policy query
+```
+
+### 1. Runtime observation path
+
+`policy/rdt_1b/model.py` converts each RoboTwin observation into three RGB
+views, bimanual joint state, and an instruction. Images are resized to the
+configured deployment resolution and passed through the same JPEG round-trip
+used by the training data path. A per-environment **2-frame observation window**
+is maintained before inference, while the T5 language embedding is cached for
+the current episode instead of being recomputed on every policy query.
+
+The deployment configuration keeps the model-facing contract explicit:
+**joint-space control, 15 Hz, 64-step chunks, BF16 CUDA inference**, with model,
+T5, and SigLIP paths resolved independently from the simulator process.
+
+### 2. Action-chunk execution and long-horizon behavior
+
+RDT predicts a 64-step action chunk rather than one action at a time. This
+reduces the need to run the 1B-scale policy at every simulator step and provides
+a temporally coherent local trajectory, but introduces a control trade-off:
+executing more of a chunk lowers inference frequency while making the policy
+less reactive to state changes inside that chunk.
+
+The evaluation loop therefore keeps collecting observations while actions are
+executed and refreshes the 2-frame history before the next model query. Long
+sequence failures are treated as **closed-loop error accumulation** rather than
+a single-frame prediction problem: small grasp/placement errors can shift later
+observations away from the demonstration distribution and eventually cause
+trajectory drift or timeout.
+
+### 3. Inference diagnostics
+
+Deployment debugging is layered around the policy boundary instead of relying
+only on rollout video. The repository retains:
+
+- **checkpoint-load audit** to verify which model weights are actually served;
+- **input audit** for prompt, state shape/value, camera shapes, and control
+  frequency;
+- **same-seed audit** that stores initial qpos, three camera observations,
+  instruction, and the first predicted action chunk;
+- task/checkpoint-scoped result and evaluation-video directories.
+
+These hooks separate common failure sources such as environment initialization,
+observation/schema mismatch, wrong checkpoint selection, policy output, and
+simulator execution. They are especially useful when investigating apparent
+motion discontinuity or task failure without attributing every issue to model
+quality.
+
+### 4. Deployment boundary
+
+This project does **not** claim real-robot latency, hard real-time guarantees,
+or Sim2Real performance. The online simulator deployment is used to validate
+the complete VLA serving contract and the failure modes that already exist
+before hardware integration: multimodal preprocessing consistency, transport
+correctness, control-frequency mismatch, action-chunk drift, long-horizon error
+accumulation, and reproducible task evaluation.
+
 ## External requirements
 
 Place or symlink model assets under:
