@@ -21,7 +21,7 @@ WEIGHTS_DIR="${POLICY_DIR}/weights/RDT"
 export TEXT_ENCODER_NAME="${TEXT_ENCODER_NAME:-${WEIGHTS_DIR}/t5-v1_1-xxl}"
 export VISION_ENCODER_NAME="${VISION_ENCODER_NAME:-${WEIGHTS_DIR}/siglip-so400m-patch14-384}"
 export RDT_PRETRAINED_MODEL="${RDT_PRETRAINED_MODEL:-${WEIGHTS_DIR}/rdt-1b}"
-export RDT_DATASET_NAME="${RDT_DATASET_NAME:-robodojo_aloha_hdf5}"
+export RDT_DATASET_NAME="${RDT_DATASET_NAME:-robotwin_arx_x5_multitask}"
 
 data_setting="${bench_name}-${ckpt_name}-${env_cfg_type}-${action_type}"
 ckpt_setting="${bench_name}-${ckpt_name}-${env_cfg_type}-${action_type}-${seed}"
@@ -36,7 +36,7 @@ export NCCL_DEBUG="${NCCL_DEBUG:-INFO}"
 export NCCL_NVLS_ENABLE="${NCCL_NVLS_ENABLE:-0}"
 export RDT_HDF5_DIR="${POLICY_DIR}/data/${data_setting}"
 export RDT_LANG_EMBED_DIR="${POLICY_DIR}/lang_embeds"
-export RDT_DATASET_STAT_PATH="${RDT_DATASET_STAT_PATH:-${PROJECT_ROOT}/experiments/adjust_bottle/dataset_stat.json}"
+export RDT_DATASET_STAT_PATH="${RDT_DATASET_STAT_PATH:-${PROJECT_ROOT}/experiments/rdt_robotwin_multitask/stats/dataset_stat.json}"
 export CFLAGS="${CFLAGS:--I/usr/include}"
 export LDFLAGS="${LDFLAGS:--L/usr/lib/x86_64-linux-gnu}"
 export WANDB_PROJECT="${WANDB_PROJECT:-robotics_diffusion_transformer}"
@@ -55,6 +55,12 @@ fi
 if [[ ! -d "${RDT_HDF5_DIR}" ]]; then
   echo "[RDT_1B] Missing data/${data_setting}" >&2
   echo "[RDT_1B] Run first: bash process_data.sh ${bench_name} ${ckpt_name} ${env_cfg_type} ${action_type}" >&2
+  exit 1
+fi
+
+if [[ ! -f "${RDT_DATASET_STAT_PATH}" ]]; then
+  echo "[RDT_1B] Missing dataset statistics: ${RDT_DATASET_STAT_PATH}" >&2
+  echo "[RDT_1B] Run: bash scripts/compute_dataset_stats.sh" >&2
   exit 1
 fi
 
