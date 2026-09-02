@@ -221,6 +221,93 @@ their adaptation to RDT fine-tuning.
 | Cross-modal alignment | One T5 embedding bound to each HDF5 episode |
 | Distribution adaptation | Task-specific state/action statistics + explicit clean/randomized boundary |
 
+## Fine-tuning and evaluation
+
+The downstream stage is designed as **low-shot task adaptation** rather than a
+second foundation-model training run. A released RDT-1B checkpoint provides the
+cross-task robot prior; RoboTwin fine-tuning isolates the task-specific HDF5,
+language embeddings, control frequency, and normalization statistics. The
+local task setup uses about **50 expert demonstrations** and a short downstream
+schedule around **10k optimization steps**.
+
+```text
+Released RDT-1B
+      ↓
+~50 task demonstrations
+      ↓
+Task-specific Fine-tuning
+      ↓
+Policy Server
+      ↓
+RoboTwin Closed-loop Rollout
+      ↓
+check_success()
+```
+
+### 1. Training engineering
+
+The training launcher in `policy/rdt_1b/train.sh` turns the upstream trainer
+into a configurable RoboTwin fine-tuning entry point. The project uses
+**DeepSpeed ZeRO-2 + BF16**, configurable gradient accumulation, HDF5 loading,
+precomputed language embeddings, image augmentation, periodic checkpointing,
+and W&B-compatible reporting. Runtime-sensitive CUDA/NCCL settings are exposed
+as environment variables instead of being treated as model changes.
+
+The retained environment records an **NVIDIA RTX 6000 Ada**, PyTorch 2.1 / CUDA
+12.1, DeepSpeed 0.14.2, and FlashAttention 2.5.5. This keeps the training setup
+reproducible without coupling the algorithm to one workstation configuration.
+
+### 2. Stability and monitoring
+
+Training diagnostics separate **optimization failure** from **data-conditioning
+failure**. Loss/NaN behavior, learning rate, GPU memory and throughput are
+checked together with the HDF5 episode, normalization statistics, language
+embedding, action mask, and control-frequency inputs. Input-audit hooks are kept
+in the deployment path for the same reason: a numerically stable diffusion loss
+does not guarantee that the robot is receiving semantically correct conditions.
+
+The optimization loss measures action-sequence reconstruction under diffusion;
+final policy quality is therefore not selected from loss alone. Closed-loop
+task completion remains the meaningful metric.
+
+### 3. Closed-loop evaluation and reproducibility
+
+Evaluation replaces expert replay with an XPolicyLab policy client/server loop:
+
+```text
+RoboTwin Observation
+        ↓  WebSocket / TCP
+RDT Policy Server
+        ↓
+64-step Action Chunk
+        ↓
+RoboTwin Execution
+        ↓
+Task-specific check_success()
+```
+
+`robotwin/scripts/eval_policy_xpolicylab.py` keeps evaluation outputs separated
+by task/checkpoint and adds **same-seed / fixed-instruction audit hooks**. Initial
+robot state, camera observations, instruction, and the first predicted action
+chunk can be captured together, making it possible to distinguish environment
+initialization differences from policy-input or policy-output differences.
+
+### 4. Benchmark boundary
+
+The evaluation design separates two questions:
+
+- **Clean**: did task-specific fine-tuning learn the manipulation skill under the
+  training-like distribution?
+- **Randomized**: how much of that performance survives changes in scene,
+  lighting, background, object pose, or camera configuration?
+
+Representative tasks retained in this repository are `adjust_bottle` and
+`pick_dual_bottles`, covering arm selection/single-object manipulation and
+synchronized bimanual manipulation respectively. Upstream RoboTwin/RDT numbers
+are treated as **reference benchmarks**; results are only compared directly
+when embodiment, data protocol, control mode, rollout count, and success
+predicate are aligned.
+
 ## External requirements
 
 Place or symlink model assets under:
