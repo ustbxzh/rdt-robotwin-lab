@@ -38,9 +38,10 @@ evaluation pipeline:
   `check_success()` predicate and keep Clean/Randomized settings separated for
   later robustness analysis.
 
-Representative tasks retained in this repository are `adjust_bottle` and
-`pick_dual_bottles`, covering single-object arm selection and synchronized
-bimanual manipulation.
+The source snapshot retains representative task implementations for
+`adjust_bottle` and `pick_dual_bottles`. The recorded demo suite below extends
+the evaluation coverage to synchronized lifting, arm-to-arm handover and
+target placement, and multi-object size ordering.
 
 > **Scope.** The project starts from released RDT-1B weights; it does not rerun
 > foundation-model pretraining. Evaluation is currently simulation-only. Model
@@ -49,17 +50,31 @@ bimanual manipulation.
 
 ## Demo
 
-Representative RoboTwin demonstrations and policy rollouts will be added here
-once the final video export is organized.
+The four RoboTwin tasks below are ordered from easier, short-horizon control to
+harder, long-horizon bimanual manipulation. **Policy rollout** shows the model's
+closed-loop test result, while **expert demonstration** is the corresponding
+programmatic expert trajectory used to collect the training data. Asset names
+ending in `_ex` denote expert demonstrations.
 
-<!--
-Planned demo layout:
+| Difficulty | Task | Policy rollout | Expert demonstration |
+| --- | --- | --- | --- |
+| 1 | **Adjust bottle and hold upright** (`adjust_bottle`) | <img src="assets/task1.gif" alt="RDT policy rollout adjusting a bottle and holding it upright" width="360"> | <img src="assets/task1_ex.gif" alt="Expert demonstration adjusting a bottle and holding it upright" width="360"> |
+| 2 | **Bimanual pot lift** (`lift_pot`) | <img src="assets/task2.gif" alt="RDT policy rollout lifting a pot with both arms" width="360"> | <img src="assets/task2_ex.gif" alt="Expert demonstration lifting a pot with both arms" width="360"> |
+| 3 | **Arm-to-arm block handover and placement** (`handover_block`) | <img src="assets/task3.gif" alt="RDT policy rollout handing over a block and placing it on the target" width="360"> | <img src="assets/task3_ex.gif" alt="Expert demonstration handing over a block and placing it on the target" width="360"> |
+| 4 | **Order blocks from large to small** (`blocks_ranking_size`) | <img src="assets/task4.gif" alt="RDT policy rollout ordering blocks from large to small" width="360"> | <img src="assets/task4_ex.gif" alt="Expert demonstration ordering blocks from large to small" width="360"> |
 
-| Task | Expert demonstration | RDT rollout |
-| --- | --- | --- |
-| adjust_bottle | assets/demos/adjust_bottle_expert.gif | assets/demos/adjust_bottle_rdt.gif |
-| pick_dual_bottles | assets/demos/pick_dual_bottles_expert.gif | assets/demos/pick_dual_bottles_rdt.gif |
--->
+The sequence highlights progressively stronger requirements:
+
+1. **Adjust bottle and hold upright** tests single-object localization, arm
+   selection, grasping, and precise orientation control.
+2. **Bimanual pot lift** adds synchronized grasping of both handles and stable
+   two-arm lifting.
+3. **Arm-to-arm block handover and placement** requires temporal coordination,
+   a reliable transfer between grippers, and precise placement on the blue
+   target.
+4. **Order blocks from large to small** combines visual size reasoning with
+   repeated pick-and-place decisions over a longer horizon, ending with a
+   left-to-right descending-size arrangement.
 
 ## RDT architecture overview
 
