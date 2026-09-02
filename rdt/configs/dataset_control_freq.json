@@ -13,7 +13,7 @@
     "stanford_kuka_multimodal_dataset_converted_externally_to_rlds": 20,
     "nyu_rot_dataset_converted_externally_to_rlds": 3,
     "stanford_hydra_dataset_converted_externally_to_rlds": 10,
-    "austin_buds_dataset_converted_externally_to_rlds": 20,
+    "austin_buds_dataset_converted_externally": 20,
     "nyu_franka_play_dataset_converted_externally_to_rlds": 3,
     "maniskill_dataset_converted_externally_to_rlds": 20,
     "furniture_bench_dataset_converted_externally_to_rlds": 10,
@@ -60,6 +60,7 @@
     "qut_dexterous_manpulation": 30,
     "agilex": 25,
     "robodojo_aloha_hdf5": 15,
+    "robotwin_arx_x5_multitask": 15,
     "rh20t": 10,
     "calvin": 30,
     "bridgev2": 5
