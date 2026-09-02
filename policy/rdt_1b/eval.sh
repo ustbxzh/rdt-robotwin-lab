@@ -11,7 +11,7 @@ env_gpu_id=$8
 policy_conda_env=$9
 eval_env_conda_env=${10}
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" # Current Dir
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 XPL_ROOT="${PROJECT_ROOT}/policy/xpolicylab"
 UTILS_DIR="${XPL_ROOT}/utils"
@@ -22,7 +22,9 @@ CLIENT_SCRIPT="${SCRIPT_DIR}/setup_eval_env_client.sh"
 policy_server_port=$(bash "${UTILS_DIR}/get_free_port.sh")
 policy_server_ip="localhost"
 
-additional_info="ckpt_name=${ckpt_name},action_type=${action_type}"
+task_config="${ROBOTWIN_TASK_CONFIG:-eval_clean}"
+test_num="${ROBOTWIN_TEST_NUM:-100}"
+additional_info="ckpt_name=${ckpt_name},action_type=${action_type},task_config=${task_config},test_num=${test_num}"
 
 cleanup() {
     if [[ -n "${SERVER_PID:-}" ]]; then
@@ -49,7 +51,7 @@ SERVER_PID=$!
 
 bash "${UTILS_DIR}/wait_for_policy_server.sh" "${policy_server_ip}" "${policy_server_port}" "${SERVER_PID}" "Policy server" 600
 
-echo "[MAIN] start client, server=${policy_server_ip}:${policy_server_port}"
+echo "[MAIN] start client, server=${policy_server_ip}:${policy_server_port}, task_config=${task_config}, test_num=${test_num}"
 
 bash "${CLIENT_SCRIPT}" \
     "${bench_name}" \
